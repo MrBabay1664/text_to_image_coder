@@ -28,18 +28,18 @@ def show_image(image_bytes: bytes):
 
 # Convert G color value to color multiplier
 def g_to_multiplier(g: int):
-    if g is 0:
+    if g == 0:
         return 1
-    elif g is 1:
+    elif g == 1:
         return 2
     else:
         return (g-1) / 10 + 2
 
 # Convert multiplier to G color value
 def multiplier_to_g(multiplier: int):
-    if multiplier is 1:
+    if multiplier == 1:
         return 0
-    elif multiplier is 2:
+    elif multiplier == 2:
         return 1
     else:
         return (multiplier-2) * 10
@@ -210,42 +210,112 @@ if __name__ == "__main__":
     # readed_image = convert_image_to_bytes(readed_image).decode("utf-8")
     # print(readed_image)
 
-    _mode = input("Enter mode (write image (W) / read image (R)): ").strip().lower()
+    from os.path import exists, isfile
+    from os import remove
 
-    if _mode == "w":
-        data_filename = input("Enter filename to load text data: ")
-        img_filename = input("Enter filename to save image: ")
+    try:
+        _mode = input("Enter mode (write image (W) / read image (R)): ").strip().lower()
 
-        img_width = int( input("Enter image width: ").strip() )
-        img_height = int( input("Enter image height: ").strip() )
+        # Write mode
+        if _mode == "w":
+            data_filename = input("Enter filename to load text data (press enter to enter text here): ")
 
-        bytes_text = open(data_filename, 'rb').read()
-        image_data = convert_bytes_to_image(bytes_text)
+            # If user is not writed filename
+            if not data_filename:
+                bytes_text = input("Enter text data: ")
+                _encoding = input("Enter text encoding (enter to utf-8): ")
 
-        png_array, width, height = convert_image_data_to_png_array(image_data, img_width, img_height)
+                # If user pressed enter, set encoding to UTF-8
+                if not _encoding:
+                    _encoding = "utf-8"
 
-        if height != img_height: print("⚠️ Warning: height is changed, because data is not fit due to data")
+                bytes_text = bytes_text.encode(_encoding) # Encode text
 
-        write_image(img_filename, width, height)
+            # If user writed filename
+            else:
+                if not exists(data_filename): # Check for file existing
+                    raise Exception(f"file \"{data_filename}\" is not exists!")
 
-    elif _mode == "r":
-        filename = input("Enter filename to load image: ")
-        encoding = input("Enter encoding to decode (enter to utf-8, n to none): ").strip().lower()
+                elif not isfile(data_filename): # If this is not file
+                    raise Exception(f"\"{data_filename}\" is not file!")
 
-        readed_image = read_image(filename)
-        readed_image = convert_png_array_to_image_data(readed_image)
-        readed_image = convert_image_to_bytes(readed_image)
+                bytes_text = open(data_filename, 'rb').read()
 
-        if encoding != "n":
-            if not encoding:
-                encoding = "utf-8"
+            img_filename = input("Enter filename to save image: ")
+
+
+            _img_override = ""
+
+            if isfile(img_filename): # If image file is existing, showing override prompt
+                _img_override = input(f"File \"{img_filename}\" is existing. Override [ Yes (Y) / No (N) ]: ").strip().lower()
+
+                # Exit program, if is not override file
+                if _img_override != "y":
+                    raise KeyboardInterrupt()
+
+            elif exists(img_filename): # If directory is existing
+                raise Exception(f"Directory named \"{img_filename}\" is existing. Please rename or remove this directory.")
+
+
+            img_width = int( input("Enter image width: ").strip() )
+            img_height = int( input("Enter image height: ").strip() )
+
+            # Convert bytes to image data
+            image_data = convert_bytes_to_image(bytes_text)
+
+            # Convert to PyPNG array
+            png_array, width, height = convert_image_data_to_png_array(image_data, img_width, img_height)
+
+            # Notify user about image height changes, if data is not fit
+            if height != img_height: print("\n⚠️ Warning: height is changed, because data is not fit due to data")
+
+            if _img_override: remove(img_filename) # Override image
+
+            # Write image to file
+            write_image(img_filename, width, height)
+
+
+        # Read mode
+        elif _mode == "r":
+            filename = input("Enter filename to load image: ")
             
-            try:
-                readed_image = readed_image.decode(encoding)
-            except UnicodeDecodeError:
-                print("⚠️ Warning: unicode decoded with errors!")
-                readed_image = readed_image.decode(encoding, errors="ignore")
-        
+            if not exists(filename): # If image file is not exists
+                raise Exception(f"file \"{filename}\" is not exists.")
 
-        print(f"Result: {readed_image}")
+            elif not isfile(filename): # If this is not a file
+                raise Exception(f"\"{filename}\" is directory!")
 
+            encoding = input("Enter encoding to decode data (enter to utf-8, n to raw bytes): ").strip().lower()
+
+            print()
+
+            readed_image = read_image(filename) # Get PyPNG array from image
+            readed_image = convert_png_array_to_image_data(readed_image) # Convert from PyPNG array to image data
+            readed_image = convert_image_to_bytes(readed_image) # Convert image data to bytes
+
+
+            if encoding != "n":
+                # If user pressed enter to select utf-8
+                if not encoding:
+                    encoding = "utf-8"
+
+                # Trying to decode bytes
+                try:
+                    readed_image = readed_image.decode(encoding)
+
+                # If decoding has errors
+                except UnicodeDecodeError:
+                    print("⚠️ Warning: unicode decoded with errors!")
+                    readed_image = readed_image.decode(encoding, errors="ignore") # Decoding with errors ignore
+
+                readed_image = f"\"{readed_image}\""
+
+
+            # Writing result
+            print(f"\nResult: {readed_image}.")
+
+
+    # Except errors
+    except KeyboardInterrupt: ...
+    except Exception as err:
+        print(f"\nError: {err}\nProgram was closed.")
