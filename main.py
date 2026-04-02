@@ -19,6 +19,7 @@ import subprocess
 
 
 color_limit = 255
+is_colorize = False
 
 
 # Show image to kitty terminal
@@ -27,7 +28,7 @@ def show_image(image_bytes: bytes):
 
 
 # Convert G color value to color multiplier
-def g_to_multiplier(g: int):
+def g_to_multiplier(g: int) -> int:
     if g == 0:
         return 1
     elif g == 1:
@@ -36,7 +37,7 @@ def g_to_multiplier(g: int):
         return (g-1) / 10 + 2
 
 # Convert multiplier to G color value
-def multiplier_to_g(multiplier: int):
+def multiplier_to_g(multiplier: int) -> int:
     if multiplier == 1:
         return 0
     elif multiplier == 2:
@@ -45,9 +46,34 @@ def multiplier_to_g(multiplier: int):
         return (multiplier-2) * 10
 
 
+# Colorizes bytes in image
+def colorize_byte(byte: int, i: int) -> tuple[int, int, int]:
+    # Common color pallete
+    r = byte
+    g = b = 0
+
+    # Colorizing after two
+    if i % 2 == 0:
+
+        # Changing R to B color
+        b = r
+        r = 0
+
+        # Colorizing after five
+        if i % 5 == 0:
+            g = color_limit - b # Some value
+
+    else:
+        if (byte % 2 == 0) and (i % 5 == 0):
+            r = int(r / 2)
+            g = multiplier_to_g(2)
+            b = byte - r*2
+
+    return (r, g, b)
+
+
 # Convert text bytes to image color values
 def convert_bytes_to_image(bytes_text: bytes) -> list[tuple[int, int, int]]:
-
     i = 0
     image_data = []
 
@@ -62,12 +88,9 @@ def convert_bytes_to_image(bytes_text: bytes) -> list[tuple[int, int, int]]:
 
         b = by - (r * g_to_multiplier(g)) # Division remainder
 
-        # Paint this
-        #if g is 0 and (i % 2 is 0):
-        #    b = r
-        #    r = 0
-        #    if i % 4:
-        #        g = color_limit - b
+        # Colorize byte
+        if is_colorize:
+            r, g, b = colorize_byte(by, i)
 
         # Append colors
         image_data.append((r, g, b))
@@ -175,7 +198,7 @@ def write_image(filename: str, width: int, height: int):
 
 
 # Read writed image
-def read_image(filename: str):
+def read_image(filename: str) -> list[list[int]]:
     reader = png.Reader(filename=filename)
     width, height, pixels, metadata = reader.read()
 
@@ -186,7 +209,6 @@ def read_image(filename: str):
 
 
 if __name__ == "__main__":
-
     # image_data = convert_bytes_to_image(bytes_text)
     # print("IMAGE DATA", image_data)
 
@@ -259,6 +281,14 @@ if __name__ == "__main__":
 
             img_width = int( input("Enter image width: ").strip() )
             img_height = int( input("Enter image height: ").strip() )
+
+
+            # Image colorize prompt
+            _img_colorize = input("Colorize image, to make it more beautiful? [ True (Y) / False (N) ]: ").strip().lower()
+
+            if _img_colorize == "y":
+                is_colorize = True
+
 
             # Convert bytes to image data
             image_data = convert_bytes_to_image(bytes_text)
