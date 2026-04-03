@@ -19,7 +19,7 @@ import subprocess
 
 
 color_limit = 255
-is_colorize = False
+colorize_mode = 0
 
 
 # Show image to kitty terminal
@@ -72,6 +72,26 @@ def colorize_byte(byte: int, i: int) -> tuple[int, int, int]:
     return (r, g, b)
 
 
+# Make byte more dark to make it more hidden
+def blackize_byte(byte: int) -> tuple[int, int, int]:
+    # Common color pallete
+    r = byte
+    g = b = 0
+
+    # Multiply G color, while it's visible
+    while r > g:
+        g += 1
+        r = int(byte / g_to_multiplier(g))
+        b = byte - int(r*g_to_multiplier(g))
+
+    # Turning back into lucky colors
+    g -= 1
+    r = int(byte / g_to_multiplier(g))
+    b = byte - int(r*g_to_multiplier(g))
+
+    return (r, g, b)
+
+
 # Convert text bytes to image color values
 def convert_bytes_to_image(bytes_text: bytes) -> list[tuple[int, int, int]]:
     i = 0
@@ -89,8 +109,11 @@ def convert_bytes_to_image(bytes_text: bytes) -> list[tuple[int, int, int]]:
         b = by - (r * g_to_multiplier(g)) # Division remainder
 
         # Colorize byte
-        if is_colorize:
+        if colorize_mode == 1:
             r, g, b = colorize_byte(by, i)
+        # Blackize byte
+        elif colorize_mode == 2:
+            r, g, b = blackize_byte(by)
 
         # Append colors
         image_data.append((r, g, b))
@@ -114,7 +137,6 @@ def convert_image_to_bytes(image_data: list[tuple[int, int, int]]) -> bytes:
         # Calculate byte
         byte = int(r*g_to_multiplier(g)) + b
 
-        #if byte not in range(0, 256):
         if not (0 <= byte <= 255):
             errors = True
             continue
@@ -235,6 +257,15 @@ if __name__ == "__main__":
     from os.path import exists, isfile
     from os import remove
 
+
+    def is_int(value):
+        try:
+            int(value)
+            return True
+        except ValueError:
+            return False
+
+
     try:
         _mode = input("Enter mode (write image (W) / read image (R)): ").strip().lower()
 
@@ -283,11 +314,15 @@ if __name__ == "__main__":
             img_height = int( input("Enter image height: ").strip() )
 
 
-            # Image colorize prompt
-            _img_colorize = input("Colorize image, to make it more beautiful? [ True (Y) / False (N) ]: ").strip().lower()
+            # Byte colorize prompt
+            _img_colorize = input("Leave byte colorize mode: Simple red data (0), Colorize bytes (1), Blackize bytes to make it more hidden (2): ").strip()
 
-            if _img_colorize == "y":
-                is_colorize = True
+            print()
+
+            if is_int(_img_colorize) and 0 <= int(_img_colorize) <= 2:
+                colorize_mode = int(_img_colorize)
+            else:
+                print(f"⚠️ Warning: invalid answer \"{_img_colorize}\".")
 
 
             # Convert bytes to image data
@@ -297,7 +332,7 @@ if __name__ == "__main__":
             png_array, width, height = convert_image_data_to_png_array(image_data, img_width, img_height)
 
             # Notify user about image height changes, if data is not fit
-            if height != img_height: print("\n⚠️ Warning: height is changed, because data is not fit due to data")
+            if height != img_height: print("⚠️ Warning: height is changed, because data is not fit due to data.")
 
             if _img_override: remove(img_filename) # Override image
 
