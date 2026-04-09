@@ -2,3 +2,7 @@ experiments
 \#main.py#
 .#main.py
 main.py~
+\#lib.py#
+.#lib.py
+lib.py~
+__pycache__
