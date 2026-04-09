@@ -1,14 +1,36 @@
 # Text to image coder
-Encoding and decoding text from images.
+Encoding and decoding bytes from images with features.
 
-Program getting text from specified text file, converting to bytes and writing every byte to pixel color channel, and image consists of a set of this pixels. Encoding is depends by file encoding.
+Program has:
+- Separated CLI mode and library
+- Convert text to image with just red colors
+- Image colorize mode, to make image looks like LED display
+- Image blackize mode, to make image darker and more hidden
 
-Encoded text to image sample:
+## Example images
 
-![Sample image](example.png "Sample image")
+![Example 1](examples/red.png "Example 1")
 
-After that, you can decode this image back to text, specify image path and encoding, which depends by file encoding, typicaly is UTF-8 (you can press enter to select UTF-8). You can also specify other encoding, or don't decode, by entering "n". After that, you will get decoded text. And if file has incorrect pixels or encoding has errors, program will be notified to you about that.
+Just red colors
 
-Program is too easy to use, and you can use this as CLI *(Command Line Interface)* or as library, imported to other file.
+![Example 2](examples/colorized.png "Example 2")
 
-But follow the **license** in license file!
+Colorized mode
+
+![Example 3](examples/blackized.png "Example 3")
+
+Blackized mode
+
+## Usage
+### Writing bytes to image
+You can load bytes from text file *(encoding is depends by file)*, or you can leave file path empty and specify your text *(you specifying encoding)*.
+
+After that leave output image filename, and image width and height.
+
+After that you can leave byte colorize mode:
+- Simple red data — don't colorize,
+- Colorize bytes — to make it looks like LED display,
+- Blackize bytes — to make it darker and more hidden.
+
+### Reading text (or bytes) from image
+You can read text or bytes from image, specify image filename and encoding. For UTF-8 encoding you can leave input empty, for raw bytes leave "n". After that you will be get decoded text. If decoding has errors or warnings, it will be displayed.

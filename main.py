@@ -75,7 +75,7 @@ try:
 
 
         # Byte colorize prompt
-        _img_colorize = input("\nByte colorize modes:\n 0. Simple red data — don't colorize,\n 1. Colorize bytes — to make it more beautiful,\n 2. Blackize bytes — to make it more hidden.\nSelect byte colorize mode: ").strip()
+        _img_colorize = input("\nByte colorize modes:\n 0. Simple red data — don't colorize,\n 1. Colorize bytes — to make it looks like LED display,\n 2. Blackize bytes — to make it darker and more hidden.\nSelect byte colorize mode: ").strip()
 
         print()
 
