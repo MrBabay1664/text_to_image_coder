@@ -20,6 +20,10 @@ import subprocess
 
 color_limit = 255
 
+WARN_FORMAT = "⚠️ Warning: {0}."
+SUC_FORMAT = "+ {0}"
+INVALID_BYTE_FORMAT = "{0}"
+
 
 # Show image to kitty terminal
 def show_image(image_bytes: bytes):
@@ -45,50 +49,81 @@ def multiplier_to_g(multiplier: int) -> int:
         return (multiplier-2) * 10
 
 
-# Colorizes bytes in image
-def colorize_byte(byte: int, i: int) -> tuple[int, int, int]:
-    # Common color pallete
-    r = byte
-    g = b = 0
+class FilterByte:
+    modes = 5
+    
+    # Colorizes bytes in image
+    def colorize(byte: int, i: int) -> tuple[int, int, int]:
+        # Common color pallete
+        r = byte
+        g = b = 0
 
-    # Colorizing after two
-    if i % 2 == 0:
+        # Colorizing after two
+        if i % 2 == 0:
 
-        # Changing R to B color
-        b = r
-        r = 0
+            # Changing R to B color
+            b = r
+            r = 0
 
-        # Colorizing after five
-        if i % 5 == 0:
-            g = color_limit - b # Some value
+            # Colorizing after five
+            if i % 5 == 0:
+                g = color_limit - b # Some value
 
-    else:
-        if (byte % 2 == 0) and (i % 5 == 0):
-            r = int(r / 2)
-            g = multiplier_to_g(2)
-            b = byte - r*2
+        else:
+            if (byte % 2 == 0) and (i % 5 == 0):
+                r = int(r / 2)
+                g = multiplier_to_g(2)
+                b = byte - r*2
 
-    return (r, g, b)
+        return (r, g, b)
 
+    # Make byte more dark to make it more hidden
+    def blackize(byte: int) -> tuple[int, int, int]:
+        # Common color pallete
+        r = byte
+        g = b = 0
 
-# Make byte more dark to make it more hidden
-def blackize_byte(byte: int) -> tuple[int, int, int]:
-    # Common color pallete
-    r = byte
-    g = b = 0
+        # Multiply G color, while it's visible
+        while r > g:
+            g += 1
+            r = int(byte / g_to_multiplier(g))
+            b = byte - int(r*g_to_multiplier(g))
 
-    # Multiply G color, while it's visible
-    while r > g:
-        g += 1
+        # Turning back into lucky colors
+        g -= 1
         r = int(byte / g_to_multiplier(g))
         b = byte - int(r*g_to_multiplier(g))
 
-    # Turning back into lucky colors
-    g -= 1
-    r = int(byte / g_to_multiplier(g))
-    b = byte - int(r*g_to_multiplier(g))
+        return (r, g, b)
 
-    return (r, g, b)
+    # Make byte green
+    def greenize(byte: int) -> tuple[int, int, int]:
+        # Common color pallete
+        r = byte
+        g = b = 0
+
+        # Multiply G color, while R is visible
+        while r > 1 and g < color_limit:
+            g += 1
+            r = int(byte / g_to_multiplier(g))
+            b = byte - int(r*g_to_multiplier(g))
+
+        return (r, g, b)
+
+    # Make byte blue
+    def blueize(byte: int) -> tuple[int, int, int]:
+        r = g = 0
+        b = byte
+
+        return (r, g, b)
+
+    # Make R and G balanced
+    def rb_balance(byte: int) -> tuple[int, int, int]:
+        r = int((byte / 2) + (byte % 2)) # Divide byte by 2 with the rest
+        b = int(byte / 2) # Divide byte by 2
+        g = 0
+
+        return (r, g, b)
 
 
 # Convert text bytes to image color values
@@ -107,12 +142,24 @@ def convert_bytes_to_image(bytes_text: bytes, colorize_mode: int = 0) -> list[tu
 
         b = by - (r * g_to_multiplier(g)) # Division remainder
 
-        # Colorize byte
-        if colorize_mode == 1:
-            r, g, b = colorize_byte(by, i)
-        # Blackize byte
-        elif colorize_mode == 2:
-            r, g, b = blackize_byte(by)
+        # # Colorize byte
+        # if colorize_mode == 1:
+        #     r, g, b = FilterByte.colorize(by, i)
+        # # Blackize byte
+        # elif colorize_mode == 2:
+        #     r, g, b = FilterByte.blackize(by)
+
+        match colorize_mode:
+            case 1: # Colorize byte
+                r, g, b = FilterByte.colorize(by, i)
+            case 2: # Blackize byte
+                r, g, b = FilterByte.blackize(by)
+            case 3: # Greenize byte
+                r, g, b = FilterByte.greenize(by)
+            case 4: # Blueize byte
+                r, g, b = FilterByte.blueize(by)
+            case 5: # Make byte in RED-BLUE balance
+                r, g, b = FilterByte.rb_balance(by)
 
         # Append colors
         image_data.append((r, g, b))
@@ -138,12 +185,14 @@ def convert_image_to_bytes(image_data: list[tuple[int, int, int]]) -> bytes:
 
         if not (0 <= byte <= 255):
             errors = True
+            byte = list(bytes(INVALID_BYTE_FORMAT.format(str(byte)), encoding="utf-8"))
+            result_text.extend( byte )
             continue
 
         result_text.append( byte )
 
     if errors:
-        print("⚠️ Warning: image has invalid bytes!")
+        print(WARN_FORMAT.format("image has invalid bytes"))
 
     # Convert to bytes type
     result_text = bytes(result_text)
@@ -214,7 +263,7 @@ def write_image(filename: str, png_array: list[list[int]], width: int, height: i
         # Write the image data to the file
         w.write(f, png_array)
 
-    print(f"Image '{filename}' created successfully.")
+    print( SUC_FORMAT.format(f"Image '{filename}' created successfully.") )
 
 
 

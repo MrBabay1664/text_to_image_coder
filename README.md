@@ -3,7 +3,7 @@ Encoding and decoding bytes from images with features.
 
 Program has:
 - Separated CLI mode and library
-- Convert text to image with just red colors
+- Convert text to image with just color fill
 - Image colorize mode, to make image looks like LED display
 - Image blackize mode, to make image darker and more hidden
 
@@ -28,7 +28,7 @@ You can load bytes from text file *(encoding is depends by file)*, or you can le
 After that leave output image filename, and image width and height.
 
 After that you can leave byte colorize mode:
-- Simple red data — don't colorize,
+- Just color fill,
 - Colorize bytes — to make it looks like LED display,
 - Blackize bytes — to make it darker and more hidden.
 

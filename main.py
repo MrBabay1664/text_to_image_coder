@@ -17,6 +17,30 @@ from os.path import exists, isfile
 from os import remove
 import lib
 
+from colorama import Fore as fg, Back as bg, Style
+
+
+# User fault exception
+class UserFault(Exception): ...
+
+
+# Warning message format
+WARN_FORMAT = f"{fg.BLACK}{bg.LIGHTYELLOW_EX} ! {fg.RESET}{bg.RESET} {fg.YELLOW}"
+WARN_FORMAT += "Warning: {0}."
+WARN_FORMAT += f"{fg.RESET}{bg.RESET}"
+
+lib.WARN_FORMAT = WARN_FORMAT
+
+# User fault message format
+USER_FAULT_FORMAT = f"{fg.WHITE}{bg.RED} - {fg.RESET}{bg.RESET} {fg.RED}"
+USER_FAULT_FORMAT += "{0}: {1}"
+USER_FAULT_FORMAT += f"{fg.RESET}{bg.RESET}"
+
+lib.SUC_FORMAT = f"{bg.GREEN}{fg.WHITE} + {bg.RESET} {fg.GREEN}{Style.BRIGHT}{{0}}{fg.RESET}"
+
+# {bg.MAGENTA}{fg.WHITE}0{bg.RESET}
+lib.INVALID_BYTE_FORMAT = f" {fg.MAGENTA}{{0}}{fg.RESET} "
+
 
 def is_int(value):
     try:
@@ -47,10 +71,10 @@ try:
         # If user writed filename
         else:
             if not exists(data_filename): # Check for file existing
-                raise Exception(f"file \"{data_filename}\" is not exists!")
+                raise UserFault(f"file \"{data_filename}\" is not exists!")
 
             elif not isfile(data_filename): # If this is not file
-                raise Exception(f"\"{data_filename}\" is not file!")
+                raise UserFault(f"\"{data_filename}\" is not file!")
 
             bytes_text = open(data_filename, 'rb').read()
 
@@ -67,7 +91,7 @@ try:
                 raise KeyboardInterrupt()
 
         elif exists(img_filename): # If directory is existing
-            raise Exception(f"Directory named \"{img_filename}\" is existing. Please rename or remove this directory.")
+            raise UserFault(f"Directory named \"{img_filename}\" is existing. Please rename or remove this directory.")
 
 
         img_width = int( input("Enter image width: ").strip() )
@@ -75,15 +99,15 @@ try:
 
 
         # Byte colorize prompt
-        _img_colorize = input("\nByte colorize modes:\n 0. Simple red data — don't colorize,\n 1. Colorize bytes — to make it looks like LED display,\n 2. Blackize bytes — to make it darker and more hidden.\nSelect byte colorize mode: ").strip()
+        _img_colorize = input("\nByte colorize modes:\n 0. Simple red data — don't colorize,\n 1. Colorize bytes — to make it looks like LED display,\n 2. Blackize bytes — to make it darker and more hidden.\n 3. Greenize bytes — makes bytes green and bright.\n 4. Blueize bytes — makes bytes blue.\n 5. Red-Blue balance — makes bytes magenta.\nSelect byte colorize mode: ").strip()
 
         print()
 
-        if is_int(_img_colorize) and 0 <= int(_img_colorize) <= 2:
+        if is_int(_img_colorize) and 0 <= int(_img_colorize) <= lib.FilterByte.modes:
             colorize_mode = int(_img_colorize)
         else:
             colorize_mode = 0
-            print(f"⚠️ Warning: invalid answer \"{_img_colorize}\".")
+            print(WARN_FORMAT.format(f"invalid answer \"{_img_colorize}\""))
 
 
         # Convert bytes to image data
@@ -93,7 +117,7 @@ try:
         png_array, width, height = lib.convert_image_data_to_png_array(image_data, img_width, img_height)
 
         # Notify user about image height changes, if data is not fit
-        if height != img_height: print("⚠️ Warning: height is changed, because data is not fit due to data.")
+        if height != img_height: print(WARN_FORMAT.format("height is changed, because data is not fit due to data size"))
 
         if _img_override: remove(img_filename) # Override image
 
@@ -106,10 +130,10 @@ try:
         filename = input("Enter filename to load image: ")
 
         if not exists(filename): # If image file is not exists
-            raise Exception(f"file \"{filename}\" is not exists.")
+            raise UserFault(f"file \"{filename}\" is not exists.")
 
         elif not isfile(filename): # If this is not a file
-            raise Exception(f"\"{filename}\" is directory!")
+            raise UserFault(f"\"{filename}\" is directory!")
 
         encoding = input("Enter encoding to decode data (enter to utf-8, n to raw bytes): ").strip().lower()
 
@@ -131,7 +155,7 @@ try:
 
             # If decoding has errors
             except UnicodeDecodeError:
-                print("⚠️ Warning: unicode decoded with errors!")
+                print(WARN_FORMAT.format("unicode decoded with errors"))
                 readed_image = readed_image.decode(encoding, errors="ignore") # Decoding with errors ignore
 
             readed_image = f"\"{readed_image}\""
@@ -143,4 +167,6 @@ try:
 
 # Program exit
 except KeyboardInterrupt: ...
-
+except UserFault as err: print(USER_FAULT_FORMAT.format("User fault", err))
+except LookupError as err: print(USER_FAULT_FORMAT.format("Lookup error", err))
+except ValueError as err: print(USER_FAULT_FORMAT.format("Value error", err))
